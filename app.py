@@ -269,7 +269,7 @@ if page == "📈 Options Pricing Engine":
             x=[f"${k:.0f}" for k in pivot_iv.columns],
             y=[f"{t:.2f}y" for t in pivot_iv.index],
             colorscale="Viridis",
-            colorbar=dict(title="IV (%)", titleside="right"),
+            colorbar=dict(title=dict(text="IV (%)", side="right")),
             hovertemplate="Strike: %{x}<br>Expiry: %{y}<br>IV: %{z:.1f}%<extra></extra>"
         ))
         fig_surface.update_layout(
