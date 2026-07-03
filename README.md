@@ -7,6 +7,8 @@ A production-grade quantitative finance analytics platform built with Python, fe
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.30+-red?style=flat-square&logo=streamlit)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 
+![Dashboard](docs/dashboard.png)
+
 ## 🔗 Live Demo
 
 **[▶ Launch App](https://quant-analytics-engine.streamlit.app)** *(update this URL after deployment)*
