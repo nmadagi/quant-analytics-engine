@@ -2,6 +2,7 @@
 
 A production-grade quantitative finance analytics platform built with Python, featuring options pricing, portfolio risk management, data pipeline architecture, and REST API design for capital markets applications.
 
+![Tests](https://github.com/nmadagi/quant-analytics-engine/actions/workflows/tests.yml/badge.svg)
 ![Python](https://img.shields.io/badge/Python-3.9+-blue?style=flat-square&logo=python)
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.30+-red?style=flat-square&logo=streamlit)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
