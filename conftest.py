@@ -1,4 +1,4 @@
-"""Pytest configuration — ensures the repo root is importable in CI."""
+"""Pytest configuration - ensures the repo root is importable in CI."""
 import sys
 from pathlib import Path
 

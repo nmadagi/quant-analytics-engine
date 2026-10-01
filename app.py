@@ -13,7 +13,6 @@ from datetime import datetime, timedelta
 # ══════════════════════════════════════════════════════════════
 st.set_page_config(
     page_title="Quantitative Analytics Engine",
-    page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -136,8 +135,8 @@ with st.sidebar:
     
     page = st.radio(
         "**Navigation**",
-        ["📈 Options Pricing Engine", "🛡️ Risk Analytics", "🔄 Data Pipeline Architecture",
-         "⚡ REST API Design", "📊 Monte Carlo Simulator"],
+        ["Options Pricing Engine", "Risk Analytics", "Data Pipeline Architecture",
+         "REST API Design", "Monte Carlo Simulator"],
         label_visibility="visible"
     )
     
@@ -156,7 +155,7 @@ with st.sidebar:
 # ══════════════════════════════════════════════════════════════
 # TAB 1: OPTIONS PRICING ENGINE
 # ══════════════════════════════════════════════════════════════
-if page == "📈 Options Pricing Engine":
+if page == "Options Pricing Engine":
     st.markdown("## Options Pricing Engine")
     st.markdown("*Black-Scholes model with SABR-adjusted volatility surface and real-time Greeks computation.*")
     
@@ -246,7 +245,7 @@ if page == "📈 Options Pricing Engine":
         st.plotly_chart(fig_payoff, use_container_width=True)
     
     # Greeks Surface
-    st.markdown("### Greeks Sensitivity — Delta & Gamma vs Spot")
+    st.markdown("### Greeks Sensitivity - Delta & Gamma vs Spot")
     spots_g = np.linspace(S * 0.7, S * 1.3, 80)
     deltas = [calc_greeks(s, K, T, r, sigma)["delta"] for s in spots_g]
     gammas = [calc_greeks(s, K, T, r, sigma)["gamma"] for s in spots_g]
@@ -269,7 +268,7 @@ if page == "📈 Options Pricing Engine":
 # ══════════════════════════════════════════════════════════════
 # TAB 2: RISK ANALYTICS
 # ══════════════════════════════════════════════════════════════
-elif page == "🛡️ Risk Analytics":
+elif page == "Risk Analytics":
     st.markdown("## Portfolio Risk Analytics")
     st.markdown("*Value-at-Risk, Expected Shortfall, stress testing, and exposure monitoring.*")
     
@@ -304,7 +303,7 @@ elif page == "🛡️ Risk Analytics":
     col_left, col_right = st.columns(2)
     
     with col_left:
-        st.markdown("### PnL Distribution (Monte Carlo — 10,000 paths)")
+        st.markdown("### PnL Distribution (Monte Carlo - 10,000 paths)")
         fig_dist = go.Figure()
         fig_dist.add_trace(go.Histogram(
             x=sim_changes, nbinsx=100, name="Simulated PnL",
@@ -368,7 +367,7 @@ elif page == "🛡️ Risk Analytics":
 # ══════════════════════════════════════════════════════════════
 # TAB 3: DATA PIPELINE ARCHITECTURE
 # ══════════════════════════════════════════════════════════════
-elif page == "🔄 Data Pipeline Architecture":
+elif page == "Data Pipeline Architecture":
     st.markdown("## Data Pipeline Architecture")
     st.markdown("*ETL design for large-scale financial datasets with PostgreSQL optimization.*")
     
@@ -392,8 +391,8 @@ elif page == "🔄 Data Pipeline Architecture":
                     <span style='width: 8px; height: 8px; border-radius: 50%; background: #22c55e; display: inline-block; box-shadow: 0 0 6px #22c55e;'></span>
                 </div>
                 <div style='font-size: 10px; color: #8b5cf6; margin-bottom: 6px;'>{info["tech"]}</div>
-                <div style='font-size: 10px; color: #94a3b8; margin-bottom: 4px;'>📊 {info["records"]}</div>
-                <div style='font-size: 10px; color: #94a3b8; margin-bottom: 8px;'>⚡ {info["latency"]}</div>
+                <div style='font-size: 10px; color: #94a3b8; margin-bottom: 4px;'>{info["records"]}</div>
+                <div style='font-size: 10px; color: #94a3b8; margin-bottom: 8px;'>{info["latency"]}</div>
                 <div style='font-size: 10px; color: #64748b; line-height: 1.4;'>{info["desc"]}</div>
             </div>
             """, unsafe_allow_html=True)
@@ -401,10 +400,10 @@ elif page == "🔄 Data Pipeline Architecture":
     st.markdown("---")
     
     # PostgreSQL Schema
-    st.markdown("### PostgreSQL Schema — Optimized for 50M+ Rows")
+    st.markdown("### PostgreSQL Schema - Optimized for 50M+ Rows")
     st.code("""
 -- ═══════════════════════════════════════════════════
--- MARKET DATA TABLE — Partitioned by Date
+-- MARKET DATA TABLE - Partitioned by Date
 -- ═══════════════════════════════════════════════════
 CREATE TABLE market_data (
     id          BIGSERIAL PRIMARY KEY,
@@ -427,7 +426,7 @@ CREATE INDEX idx_market_symbol_ts
     ON market_data (symbol, timestamp DESC);
 
 -- ═══════════════════════════════════════════════════
--- TRADE BLOTTER — Order execution records
+-- TRADE BLOTTER - Order execution records
 -- ═══════════════════════════════════════════════════
 CREATE TABLE trade_blotter (
     trade_id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -447,7 +446,7 @@ CREATE INDEX idx_trade_portfolio_ts
     ON trade_blotter (portfolio_id, executed_at DESC);
 
 -- ═══════════════════════════════════════════════════
--- RISK SNAPSHOTS — Daily portfolio risk metrics
+-- RISK SNAPSHOTS - Daily portfolio risk metrics
 -- ═══════════════════════════════════════════════════
 CREATE TABLE risk_snapshots (
     id              BIGSERIAL PRIMARY KEY,
@@ -530,8 +529,8 @@ WHERE t.portfolio_id = 'PORT-001';
 # ══════════════════════════════════════════════════════════════
 # TAB 4: REST API DESIGN
 # ══════════════════════════════════════════════════════════════
-elif page == "⚡ REST API Design":
-    st.markdown("## REST API Architecture — Microservices Design")
+elif page == "REST API Design":
+    st.markdown("## REST API Architecture - Microservices Design")
     st.markdown("*FastAPI endpoints for options pricing, order management, and risk queries.*")
     
     endpoint_tabs = st.tabs(["GET /price/{ticker}", "POST /orders", "GET /risk/portfolio", "Architecture"])
@@ -549,7 +548,7 @@ Headers:
   Accept: application/json
             """, language="http")
         with col2:
-            st.markdown("**Response — 200 OK**")
+            st.markdown("**Response - 200 OK**")
             st.json({
                 "ticker": "AAPL",
                 "spot": 192.45,
@@ -647,7 +646,7 @@ X-Idempotency-Key: ord-2026-05-18-001
 }
             """, language="json")
         with col2:
-            st.markdown("**Response — 201 Created**")
+            st.markdown("**Response - 201 Created**")
             st.json({
                 "order_id": "ORD-20260518-A7X2",
                 "status": "accepted",
@@ -713,7 +712,7 @@ Headers:
   Authorization: Bearer <token>
             """, language="http")
         with col2:
-            st.markdown("**Response — 200 OK**")
+            st.markdown("**Response - 200 OK**")
             st.json({
                 "portfolio_id": "PORT-001",
                 "portfolio_value": 10000000,
@@ -759,7 +758,7 @@ Headers:
 # ══════════════════════════════════════════════════════════════
 # TAB 5: MONTE CARLO SIMULATOR
 # ══════════════════════════════════════════════════════════════
-elif page == "📊 Monte Carlo Simulator":
+elif page == "Monte Carlo Simulator":
     st.markdown("## Monte Carlo Simulation Engine")
     st.markdown("*Price path simulation, convergence analysis, and option pricing via simulation.*")
     
@@ -891,7 +890,7 @@ elif page == "📊 Monte Carlo Simulator":
 st.markdown("---")
 st.markdown("""
 <div style='text-align: center; color: #475569; font-size: 11px; padding: 20px 0;'>
-    <strong>Quantitative Analytics Engine</strong> — Built by Nitin Madagi<br>
+    <strong>Quantitative Analytics Engine</strong> - Built by Nitin Madagi<br>
     Python • NumPy • pandas • scipy • Plotly • Streamlit • PostgreSQL • FastAPI<br><br>
     <a href='https://github.com/nmadagi' style='color: #8b5cf6;'>GitHub</a> • 
     <a href='https://www.linkedin.com/in/nmadagi' style='color: #8b5cf6;'>LinkedIn</a> • 

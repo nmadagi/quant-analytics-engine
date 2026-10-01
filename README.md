@@ -9,7 +9,7 @@ A production-grade quantitative finance analytics platform built with Python, fe
 
 ![Dashboard](docs/dashboard.png)
 
-## 🔗 Live Demo
+## Live Demo
 
 **[▶ Launch App](https://quant-analytics-engine.streamlit.app)** *(update this URL after deployment)*
 
@@ -17,35 +17,35 @@ A production-grade quantitative finance analytics platform built with Python, fe
 
 ## Features
 
-### 📈 Options Pricing Engine
+### Options Pricing Engine
 - Black-Scholes model with SABR-adjusted volatility surface
 - Real-time Greeks computation (Delta, Gamma, Theta, Vega, Rho)
 - Interactive volatility surface heatmap
 - Option price vs spot price visualization
 - Greeks sensitivity analysis
 
-### 🛡️ Risk Analytics
-- Value-at-Risk (VaR) — Historical, Parametric, and Monte Carlo methods
+### Risk Analytics
+- Value-at-Risk (VaR) - Historical, Parametric, and Monte Carlo methods
 - Conditional VaR / Expected Shortfall
 - Stress testing across 8 macroeconomic scenarios
 - Portfolio Greeks exposure monitoring
 - Position-level risk attribution
 
-### 🔄 Data Pipeline Architecture
+### Data Pipeline Architecture
 - ETL design for 50M+ row financial datasets
 - PostgreSQL schema with date partitioning and composite indexes
 - Trade blotter, market data, and risk snapshot tables
 - Data quality validation framework with smart backfill
 - Query optimization patterns (window functions, LATERAL joins)
 
-### ⚡ REST API Design
+### REST API Design
 - FastAPI microservice architecture for pricing and order management
 - Pre-trade risk check pipeline (VaR impact, position limits, concentration, Greeks)
 - Pydantic request/response validation
 - Idempotency keys for order deduplication
 - Full endpoint documentation with request/response examples
 
-### 📊 Monte Carlo Simulator
+### Monte Carlo Simulator
 - Geometric Brownian Motion price path simulation (up to 10,000 paths)
 - Percentile band visualization (5th, 25th, 50th, 75th, 95th)
 - Terminal price distribution analysis
@@ -107,7 +107,7 @@ quant-analytics-engine/
 
 ## Author
 
-**Nitin Madagi** — Quantitative Risk & Financial Engineering
+**Nitin Madagi** - Quantitative Risk & Financial Engineering
 
 - [GitHub](https://github.com/nmadagi)
 - [LinkedIn](https://www.linkedin.com/in/nmadagi)
