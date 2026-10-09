@@ -117,6 +117,23 @@ st.markdown("""
 # ══════════════════════════════════════════════════════════════
 
 from quant_core import black_scholes, calc_greeks, generate_vol_surface, monte_carlo_var
+from market_vol import atm_vol_by_expiry, fetch_option_chain, surface_from_chain
+from ml_pricer import BASELINE, dataset_from_surface, make_synthetic_dataset, run_benchmark
+
+
+@st.cache_data(ttl=900, show_spinner=False)
+def load_chain(ticker, max_expiries=6):
+    return fetch_option_chain(ticker, max_expiries)
+
+
+@st.cache_data(show_spinner=False)
+def synthetic_quotes(n_days, quotes_per_day, seed):
+    return make_synthetic_dataset(n_days, quotes_per_day, seed)
+
+
+@st.cache_data(show_spinner=False)
+def cached_benchmark(df, n_estimators, nn_iter, seed):
+    return run_benchmark(df, n_estimators=n_estimators, nn_iter=nn_iter, seed=seed)
 
 
 # ══════════════════════════════════════════════════════════════
@@ -135,8 +152,8 @@ with st.sidebar:
     
     page = st.radio(
         "**Navigation**",
-        ["Options Pricing Engine", "Risk Analytics", "Data Pipeline Architecture",
-         "REST API Design", "Monte Carlo Simulator"],
+        ["Options Pricing Engine", "ML Pricer Benchmark", "Risk Analytics",
+         "Data Pipeline Architecture", "REST API Design", "Monte Carlo Simulator"],
         label_visibility="visible"
     )
     
@@ -157,7 +174,7 @@ with st.sidebar:
 # ══════════════════════════════════════════════════════════════
 if page == "Options Pricing Engine":
     st.markdown("## Options Pricing Engine")
-    st.markdown("*Black-Scholes model with SABR-adjusted volatility surface and real-time Greeks computation.*")
+    st.markdown("*Black-Scholes pricing, real-time Greeks, and an implied volatility surface solved from live option quotes.*")
     
     # Parameter Controls
     col1, col2, col3, col4, col5 = st.columns(5)
@@ -202,24 +219,66 @@ if page == "Options Pricing Engine":
     
     with col_left:
         st.markdown("### Implied Volatility Surface")
-        vol_df = generate_vol_surface(S, r, sigma)
-        
-        pivot_iv = vol_df.pivot_table(values="implied_vol", index="expiry", columns="strike", aggfunc="first")
-        
-        fig_surface = go.Figure(data=go.Heatmap(
-            z=pivot_iv.values * 100,
-            x=[f"${k:.0f}" for k in pivot_iv.columns],
-            y=[f"{t:.2f}y" for t in pivot_iv.index],
-            colorscale="Viridis",
-            colorbar=dict(title=dict(text="IV (%)", side="right")),
-            hovertemplate="Strike: %{x}<br>Expiry: %{y}<br>IV: %{z:.1f}%<extra></extra>"
-        ))
-        fig_surface.update_layout(
-            xaxis_title="Strike Price", yaxis_title="Time to Expiry",
-            template="plotly_dark", height=400,
-            paper_bgcolor="#0f1729", plot_bgcolor="#0a0f1a",
-            margin=dict(l=60, r=20, t=20, b=60)
-        )
+        src_col, tick_col = st.columns([3, 2])
+        with src_col:
+            surface_source = st.radio(
+                "Surface source", ["Market quotes (yfinance)", "Modeled smile"],
+                horizontal=True, label_visibility="collapsed", key="surface_source"
+            )
+        with tick_col:
+            surf_ticker = st.text_input("Ticker", "SPY", label_visibility="collapsed",
+                                        disabled=surface_source != "Market quotes (yfinance)")
+
+        market_surface = None
+        if surface_source == "Market quotes (yfinance)":
+            try:
+                mkt_spot, chain = load_chain(surf_ticker.strip().upper())
+                market_surface = surface_from_chain(chain, mkt_spot, r)
+                if market_surface.empty:
+                    raise ValueError("no usable OTM quotes within 15% of spot")
+            except Exception as exc:  # network, bad ticker, empty chain
+                st.warning(f"Market data unavailable ({exc}). Showing the modeled smile instead.")
+                market_surface = None
+
+        if market_surface is not None:
+            st.caption(
+                f"{len(market_surface)} OTM quotes for {surf_ticker.upper()}, spot ${mkt_spot:.2f}. "
+                f"Each point is a Black-Scholes implied vol solved from the bid-ask mid with Brent's method."
+            )
+            fig_surface = go.Figure()
+            for exp_date, grp in market_surface.groupby("expiry_date"):
+                fig_surface.add_trace(go.Scatter(
+                    x=grp["strike"], y=grp["implied_vol"] * 100, mode="lines+markers",
+                    name=str(exp_date), marker=dict(size=5),
+                    hovertemplate="Strike: $%{x:.0f}<br>IV: %{y:.1f}%<extra>" + str(exp_date) + "</extra>"
+                ))
+            fig_surface.add_vline(x=mkt_spot, line_dash="dot", line_color="#f59e0b",
+                                  annotation_text=f"Spot ${mkt_spot:.0f}")
+            fig_surface.update_layout(
+                xaxis_title="Strike Price", yaxis_title="Implied Vol (%)",
+                template="plotly_dark", height=400,
+                paper_bgcolor="#0f1729", plot_bgcolor="#0a0f1a",
+                margin=dict(l=60, r=20, t=20, b=60),
+                legend=dict(orientation="h", y=-0.25, font=dict(size=10))
+            )
+        else:
+            st.caption("Stylised smile around the slider vol. Not market data.")
+            vol_df = generate_vol_surface(S, r, sigma)
+            pivot_iv = vol_df.pivot_table(values="implied_vol", index="expiry", columns="strike", aggfunc="first")
+            fig_surface = go.Figure(data=go.Heatmap(
+                z=pivot_iv.values * 100,
+                x=[f"${k:.0f}" for k in pivot_iv.columns],
+                y=[f"{t:.2f}y" for t in pivot_iv.index],
+                colorscale="Viridis",
+                colorbar=dict(title=dict(text="IV (%)", side="right")),
+                hovertemplate="Strike: %{x}<br>Expiry: %{y}<br>IV: %{z:.1f}%<extra></extra>"
+            ))
+            fig_surface.update_layout(
+                xaxis_title="Strike Price", yaxis_title="Time to Expiry",
+                template="plotly_dark", height=400,
+                paper_bgcolor="#0f1729", plot_bgcolor="#0a0f1a",
+                margin=dict(l=60, r=20, t=20, b=60)
+            )
         st.plotly_chart(fig_surface, use_container_width=True)
     
     with col_right:
@@ -263,6 +322,112 @@ if page == "Options Pricing Engine":
     fig_greeks.update_yaxes(title_text="Delta", secondary_y=False)
     fig_greeks.update_yaxes(title_text="Gamma", secondary_y=True)
     st.plotly_chart(fig_greeks, use_container_width=True)
+
+
+# ══════════════════════════════════════════════════════════════
+# TAB 1b: ML PRICER BENCHMARK
+# ══════════════════════════════════════════════════════════════
+elif page == "ML Pricer Benchmark":
+    st.markdown("## ML Pricer Benchmark")
+    st.markdown("*Random Forest and neural network pricers against flat-vol Black-Scholes, scored on out-of-sample quotes by MSE and MAE.*")
+    st.markdown(
+        "Every pricer gets the same inputs: spot, strike, expiry, rate and one at-the-money vol. "
+        "Black-Scholes applies that vol to every strike. The learned models start from the Black-Scholes "
+        "price and learn the correction, which is the volatility smile the formula cannot see."
+    )
+
+    ctl1, ctl2, ctl3, ctl4 = st.columns(4)
+    with ctl1:
+        bench_source = st.selectbox("Quotes", ["Synthetic (time split)", "Live chain (yfinance)"], key="bench_source")
+    with ctl2:
+        bench_ticker = st.text_input("Ticker", "SPY", disabled=not bench_source.startswith("Live"))
+    with ctl3:
+        n_trees = st.slider("Random Forest trees", 50, 500, 300, step=50)
+    with ctl4:
+        nn_iter = st.slider("Network max iterations", 200, 3000, 2000, step=100)
+
+    try:
+        if bench_source.startswith("Live"):
+            live_spot, live_chain = load_chain(bench_ticker.strip().upper(), max_expiries=8)
+            live_surface = surface_from_chain(live_chain, live_spot, 0.045)
+            if len(live_surface) < 40:
+                raise ValueError("fewer than 40 usable OTM quotes")
+            atm_curve = atm_vol_by_expiry(live_surface)
+            bench_df = dataset_from_surface(live_surface, live_spot, 0.045, atm_curve)
+            st.caption(
+                f"{len(bench_df)} OTM quotes for {bench_ticker.upper()} at spot ${live_spot:.2f} across "
+                f"{len(atm_curve)} expiries. Black-Scholes uses each expiry's ATM vol, so it only misses the smile. "
+                f"One snapshot, so the holdout is a random 25% of quotes."
+            )
+        else:
+            bench_df = synthetic_quotes(40, 150, 42)
+            st.caption(
+                f"{len(bench_df)} quotes over 40 simulated days priced off a skewed smile with 1% bid-ask noise. "
+                f"Train on the first 30 days, test on the last 10."
+            )
+        with st.spinner("Fitting models..."):
+            result = cached_benchmark(bench_df, n_trees, nn_iter, 42)
+    except Exception as exc:
+        st.error(f"Benchmark unavailable: {exc}")
+        st.stop()
+
+    st.markdown("---")
+    best = result.metrics["MSE"].idxmin()
+    gain = 1 - result.metrics.loc[best, "MSE"] / result.metrics.loc[BASELINE, "MSE"]
+    m1, m2, m3, m4 = st.columns(4)
+    with m1:
+        st.metric("Black-Scholes MSE", f"{result.metrics.loc[BASELINE, 'MSE']:.4f}")
+    with m2:
+        st.metric("Random Forest MSE", f"{result.metrics.loc['Random Forest', 'MSE']:.4f}")
+    with m3:
+        st.metric("Neural Network MSE", f"{result.metrics.loc['Neural Network', 'MSE']:.4f}")
+    with m4:
+        st.metric("Best pricer", best, delta=f"{gain:.0%} lower MSE than Black-Scholes")
+
+    t1, t2 = st.columns(2)
+    with t1:
+        st.markdown(f"**Out-of-sample error ($ per contract, {result.split} split, n={len(result.predictions)})**")
+        st.dataframe(result.metrics.style.format("{:.4f}"), use_container_width=True)
+    with t2:
+        st.markdown("**MAE by moneyness bucket**")
+        st.dataframe(result.by_bucket.style.format("{:.4f}"), use_container_width=True)
+
+    st.markdown("### Predicted vs Market Price")
+    fig_fit = go.Figure()
+    colors = {BASELINE: "#64748b", "Random Forest": "#22c55e", "Neural Network": "#8b5cf6"}
+    preds = result.predictions
+    for name in result.metrics.index:
+        fig_fit.add_trace(go.Scatter(
+            x=preds["market_price"], y=preds[name], mode="markers", name=name,
+            marker=dict(size=5, opacity=0.55, color=colors[name]),
+            hovertemplate="Market: $%{x:.2f}<br>Model: $%{y:.2f}<extra>" + name + "</extra>"
+        ))
+    lim = float(preds["market_price"].max()) * 1.05
+    fig_fit.add_trace(go.Scatter(x=[0, lim], y=[0, lim], mode="lines", name="Perfect fit",
+                                 line=dict(color="#f59e0b", dash="dash", width=1)))
+    fig_fit.update_layout(
+        template="plotly_dark", height=420,
+        paper_bgcolor="#0f1729", plot_bgcolor="#0a0f1a",
+        xaxis_title="Market Price ($)", yaxis_title="Model Price ($)",
+        margin=dict(l=60, r=20, t=20, b=60), legend=dict(orientation="h", y=1.1)
+    )
+    st.plotly_chart(fig_fit, use_container_width=True)
+
+    st.markdown("### Error vs Moneyness")
+    fig_err = go.Figure()
+    for name in result.metrics.index:
+        fig_err.add_trace(go.Scatter(
+            x=preds["log_moneyness"], y=preds[name] - preds["market_price"], mode="markers", name=name,
+            marker=dict(size=5, opacity=0.55, color=colors[name])
+        ))
+    fig_err.add_hline(y=0, line_color="#334155")
+    fig_err.update_layout(
+        template="plotly_dark", height=320,
+        paper_bgcolor="#0f1729", plot_bgcolor="#0a0f1a",
+        xaxis_title="log(K / S)", yaxis_title="Model minus Market ($)",
+        margin=dict(l=60, r=20, t=20, b=60), legend=dict(orientation="h", y=1.1)
+    )
+    st.plotly_chart(fig_err, use_container_width=True)
 
 
 # ══════════════════════════════════════════════════════════════
@@ -608,7 +773,7 @@ async def get_option_price(
     T = (expiry - date.today()).days / 365.25
     sigma = vol_surface.interpolate(strike, T)
     
-    # Price using Black-Scholes with SABR-calibrated vol
+    # Price using Black-Scholes with the vol interpolated from the market surface
     price = black_scholes(spot, strike, T, RISK_FREE_RATE, sigma, type)
     greeks = calc_greeks(spot, strike, T, RISK_FREE_RATE, sigma)
     

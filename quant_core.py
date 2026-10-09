@@ -7,6 +7,7 @@ without pulling in Streamlit.
 
 import numpy as np
 import pandas as pd
+from scipy.optimize import brentq
 from scipy.stats import norm
 
 
@@ -38,8 +39,39 @@ def calc_greeks(S, K, T, r, sigma):
     }
 
 
+def implied_vol(price, S, K, T, r, option_type="call", lo=1e-4, hi=5.0):
+    """Back out the Black-Scholes implied volatility from an observed option price.
+
+    Solves black_scholes(sigma) = price with Brent's method. Returns NaN when the
+    price sits outside the no-arbitrage bounds (below intrinsic value or above the
+    underlying), so callers can drop stale or crossed quotes instead of crashing.
+    """
+    if T <= 0 or price <= 0 or S <= 0 or K <= 0:
+        return float("nan")
+    disc_k = K * np.exp(-r * T)
+    if option_type == "call":
+        intrinsic, upper = max(S - disc_k, 0.0), S
+    else:
+        intrinsic, upper = max(disc_k - S, 0.0), disc_k
+    if price <= intrinsic or price >= upper:
+        return float("nan")
+
+    def gap(sigma):
+        return black_scholes(S, K, T, r, sigma, option_type) - price
+
+    try:
+        return brentq(gap, lo, hi, xtol=1e-8, maxiter=200)
+    except ValueError:
+        return float("nan")
+
+
 def generate_vol_surface(S, r, base_sigma, strikes_range=0.15, n_strikes=20, expiries=None):
-    """Generate implied volatility surface with smile effect."""
+    """Modeled volatility smile around a single base vol.
+
+    This is a stylised fallback, not market data: the smile and term shape are
+    fixed polynomial adjustments. Use market_vol.surface_from_chain for an
+    implied volatility surface solved from real option quotes.
+    """
     if expiries is None:
         expiries = [0.08, 0.17, 0.25, 0.5, 0.75, 1.0]
     strikes = np.linspace(S * (1 - strikes_range), S * (1 + strikes_range), n_strikes)
